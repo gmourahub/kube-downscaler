@@ -2,7 +2,15 @@ import argparse
 import os
 
 VALID_RESOURCES = frozenset(
-    ["deployments", "statefulsets", "stacks", "cronjobs", "horizontalpodautoscalers"]
+    [
+        "deployments",
+        "statefulsets",
+        "stacks",
+        "cronjobs",
+        "horizontalpodautoscalers",
+        "rollouts",
+        "scaledobjects",
+    ]
 )
 
 
@@ -37,14 +45,14 @@ def get_parser():
     parser.add_argument(
         "--include-resources",
         type=check_include_resources,
-        default="deployments",
+        default=os.getenv("INCLUDE_RESOURCES", "deployments"),
         help=f"Downscale resources of this kind as comma separated list. [{', '.join(sorted(VALID_RESOURCES))}] (default: deployments)",
     )
     parser.add_argument(
         "--grace-period",
         type=int,
         help="Grace period in seconds for deployments before scaling down (default: 15min)",
-        default=900,
+        default=os.getenv("GRACE_PERIOD", 900),
     )
     upscale_group.add_argument(
         "--upscale-period",
@@ -73,7 +81,7 @@ def get_parser():
     )
     parser.add_argument(
         "--exclude-deployments",
-        help="Exclude specific deployments from downscaling (default: kube-downscaler,downscaler)",
+        help="Exclude specific deployments from downscaling. Despite its name, this option will match the name of any included resource type (Deployment, StatefulSet, CronJob, ..). (default: kube-downscaler,downscaler)",
         default=os.getenv("EXCLUDE_DEPLOYMENTS", "kube-downscaler,downscaler"),
     )
     parser.add_argument(
@@ -90,5 +98,10 @@ def get_parser():
         "--enable-events",
         help="Emit Kubernetes events for scale up/down",
         action="store_true",
+    )
+    parser.add_argument(
+        "--matching-labels",
+        default=os.getenv("MATCHING_LABELS", ""),
+        help="Apply downscaling to resources with the supplied labels. This is a comma-separated list of regex patterns. This is optional, downscaling will be applied to all resources by default.",
     )
     return parser
